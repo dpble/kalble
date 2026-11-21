@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "jev-trader-app",
+      "name": "kalble-app",
       "devDependencies": {
         "@tauri-apps/cli": "2",
       },

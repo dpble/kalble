@@ -1,5 +1,5 @@
 //! Kalble desktop app: opening it starts `bun run scripts/duo.ts` (dry-run bots + dashboard),
-//! the window shows the compare dashboard, quitting stops everything. Log: ~/jev-trader/data/duo.log
+//! the window shows the compare dashboard, quitting stops everything. Log: ~/kalble/data/duo.log
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU32, Ordering};
 use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
@@ -7,7 +7,7 @@ use std::path::Path;
 
 static DUO: AtomicU32 = AtomicU32::new(0);
 
-fn repo() -> String { format!("{}/jev-trader", std::env::var("HOME").unwrap_or_default()) }
+fn repo() -> String { format!("{}/kalble", std::env::var("HOME").unwrap_or_default()) }
 fn path() -> String { format!("/opt/homebrew/bin:/usr/local/bin:{}", std::env::var("PATH").unwrap_or_default()) }
 
 fn start_duo() {

@@ -51,7 +51,7 @@ export interface Rewards { minSize: number; maxSpreadC: number; dailyUsd: number
 
 export const getJson = async (url: string) => {
   const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
-  if (!r.ok) throw new Error(`${new URL(url).host} http ${r.status}`);
+  if (!r.ok) { await r.body?.cancel().catch(() => {}); throw new Error(`${new URL(url).host} http ${r.status}`); } // an unread body times out later as an unhandled rejection
   return r.json() as Promise<any>;
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -467,32 +467,51 @@ async function usPrograms(query: string): Promise<any[]> {
  * inside the touch. 10-90c only (the
  * longshot rule blocks the cheap side otherwise), 2+ days to the market's end, and an estimate of $1+/day (nothing under $1 is paid).
  */
+/** $/hour our quotes would earn on the book right now, or null when the market is closed or outside 10-90c. */
+async function usEstimate(slug: string, t: any) {
+  const b = (await getJson(`${PMUS}/markets/${slug}/book`).catch(() => null))?.marketData;
+  const bids = usLevels(b?.bids).sort((x, y) => y[0] - x[0]), asks = usLevels(b?.offers).sort((x, y) => x[0] - y[0]);
+  if (b?.state !== "MARKET_STATE_OPEN" || !bids.length || !asks.length || bids[0]![0] < 0.1 || asks[0]![0] > 0.9) return null;
+  const rw = usRewards(t);
+  return rewardPerHour(rw, 0.01, bids, asks, { buy: sideSize(rw, "buy", bids[0]![0]), sell: sideSize(rw, "sell", asks[0]![0]) });
+}
+
 async function pickUs(): Promise<{ slug: string; t: any; m: any }> {
   const now = Date.now(), seen = new Map<string, any>();
   for (const q of PMUS_PREFIXES) {
     for (const p of await usPrograms(`${q}-`)) { const t = dailyProgram(p, now); if (t && !seen.has(p.marketSlug) && !excluded(p.marketSlug)) seen.set(p.marketSlug, t); }
     await sleep(100);
   }
-  // A small target with a big pool is the cheapest to take a share of; only the best 60 get their book read.
+  // A small target with a big pool is the cheapest to take a share of; only the best 250 get their book read.
   const top = [...seen].sort((a, b) => b[1].rewardPool / b[1].targetSize - a[1].rewardPool / a[1].targetSize).slice(0, 250); // most are outside 10-90c; ~40 s of reads
   const est: { slug: string; t: any; h: number }[] = [];
   for (const [slug, t] of top) {
-    const b = (await getJson(`${PMUS}/markets/${slug}/book`).catch(() => null))?.marketData;
+    const h = await usEstimate(slug, t);
     await sleep(50);
-    const bids = usLevels(b?.bids).sort((x, y) => y[0] - x[0]), asks = usLevels(b?.offers).sort((x, y) => x[0] - y[0]);
-    if (b?.state !== "MARKET_STATE_OPEN" || !bids.length || !asks.length || bids[0]![0] < 0.1 || asks[0]![0] > 0.9) continue;
-    const rw = usRewards(t);
-    est.push({ slug, t, h: rewardPerHour(rw, 0.01, bids, asks, { buy: sideSize(rw, "buy", bids[0]![0]), sell: sideSize(rw, "sell", asks[0]![0]) }) });
+    if (h !== null) est.push({ slug, t, h });
   }
   const ranked = est.filter((r) => r.h * 24 >= 1).sort((a, b) => b.h - a.h);
-  console.error(`polyus: ${seen.size} daily programs, ${est.length} books in 10-90c, ${ranked.length} pay $1+/day; best ${est.sort((a, b) => b.h - a.h).slice(0, 3).map((r) => `${r.slug} $${(r.h * 24).toFixed(2)}/d`).join(", ")}`);
+  console.error(`polyus: ${seen.size} daily programs, ${est.length} books in 10-90c, ${ranked.length} pay $1+/day on one snapshot; best ${ranked.slice(0, 3).map((r) => `${r.slug} $${(r.h * 24).toFixed(2)}/d`).join(", ")}`);
+  const short: { slug: string; t: any; m: any; snap: number; sum: number }[] = [];
   for (const r of ranked) { // same-day crypto strikes rank high but end today: keep looking
     const m = (await getJson(`${PMUS}/market/slug/${r.slug}`).catch(() => null))?.market;
     await sleep(50);
-    if (m?.active && !m.closed && Date.parse(m.endDate) > now + 2 * 86_400_000) {
-      console.error(`polyus pick: ${r.slug} ~$${(r.h * 24).toFixed(2)}/d (pool $${r.t.rewardPool}/d, target ${r.t.targetSize})`);
-      return { slug: r.slug, t: r.t, m };
-    }
+    if (m?.active && !m.closed && Date.parse(m.endDate) > now + 2 * 86_400_000) short.push({ slug: r.slug, t: r.t, m, snap: r.h, sum: 0 });
+    if (short.length >= 8) break;
+  }
+  // One snapshot can catch a tight book in a market that pays nobody most seconds (maxSpread fails), so rank on the average
+  // of US_SAMPLES reads 30 s apart. ponytail: 5 minutes of history; log pay rates across sessions if this still misjudges.
+  const n = Number(process.env.US_SAMPLES ?? 10);
+  for (let i = 0; i < n; i++) {
+    for (const c of short) { c.sum += (await usEstimate(c.slug, c.t)) ?? 0; await sleep(50); }
+    if (i < n - 1) await sleep(30_000);
+  }
+  const best = short.map((c) => ({ ...c, h: c.sum / n })).sort((a, b) => b.h - a.h);
+  console.error(`polyus sampled ${n}x: ${best.map((c) => `${c.slug} $${(c.h * 24).toFixed(2)}/d (snapshot $${(c.snap * 24).toFixed(2)})`).join(", ")}`);
+  if (best[0] && best[0].h * 24 >= 1) {
+    const r = best[0];
+    console.error(`polyus pick: ${r.slug} ~$${(r.h * 24).toFixed(2)}/d averaged (pool $${r.t.rewardPool}/d, target ${r.t.targetSize})`);
+    return { slug: r.slug, t: r.t, m: r.m };
   }
   throw new Error("polyus: no daily liquidity program fits the budget");
 }

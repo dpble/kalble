@@ -105,10 +105,12 @@ function exit(why: string, code = 10) {
   setInterval(() => { if (trader.isFlat || Date.now() - t0 > 20_000) process.exit(code); }, 500);
 }
 if (config.sessionMs) setTimeout(() => exit("session over"), config.sessionMs);
+// a network timeout that escapes a fire-and-forget read should cost one tick, not the session
+process.on("unhandledRejection", (e: any) => { if (e?.name === "TimeoutError" || e?.name === "AbortError") console.error(`ignored ${e.name}: ${e.message}`); else throw e; });
 for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"] as const) process.on(sig, () => exit(sig, 0)); // duo stops sibling bots with SIGTERM
 if (venue === "kuru") trader.attachTradeFeed(log10(market.params.sizePrecision));
 else trader.attachTradeFeed(0, (market as unknown as VenueMarket).feed as any);
 
-console.log(`jev-trader · model=${model.name} · post-only ${config.quoteInsideTicks} tick inside the touch · horizon ${config.horizonBlocks} blocks · ${config.dryRun ? "DRY RUN" : `wallet ${market.address}`} · ${label} · :${config.port} · log data/${config.runName}.jsonl`);
+console.log(`kalble · model=${model.name} · post-only ${config.quoteInsideTicks} tick inside the touch · horizon ${config.horizonBlocks} blocks · ${config.dryRun ? "DRY RUN" : `wallet ${market.address}`} · ${label} · :${config.port} · log data/${config.runName}.jsonl`);
 if (venue === "kuru") startBlockFeed((block) => trader.onBlock(block));
 else { let tick = 0; setInterval(() => trader.onBlock(++tick), config.tickMs); }
