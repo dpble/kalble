@@ -492,25 +492,25 @@ async function pickUs(): Promise<{ slug: string; t: any; m: any }> {
   }
   const ranked = est.filter((r) => r.h * 24 >= 1).sort((a, b) => b.h - a.h);
   console.error(`polyus: ${seen.size} daily programs, ${est.length} books in 10-90c, ${ranked.length} pay $1+/day on one snapshot; best ${ranked.slice(0, 3).map((r) => `${r.slug} $${(r.h * 24).toFixed(2)}/d`).join(", ")}`);
-  const short: { slug: string; t: any; m: any; snap: number; sum: number }[] = [];
+  const short: { slug: string; t: any; m: any; snap: number; hs: number[] }[] = [];
   for (const r of ranked) { // same-day crypto strikes rank high but end today: keep looking
     const m = (await getJson(`${PMUS}/market/slug/${r.slug}`).catch(() => null))?.market;
     await sleep(50);
-    if (m?.active && !m.closed && Date.parse(m.endDate) > now + 2 * 86_400_000) short.push({ slug: r.slug, t: r.t, m, snap: r.h, sum: 0 });
+    if (m?.active && !m.closed && Date.parse(m.endDate) > now + 2 * 86_400_000) short.push({ slug: r.slug, t: r.t, m, snap: r.h, hs: [] });
     if (short.length >= 8) break;
   }
-  // One snapshot can catch a tight book in a market that pays nobody most seconds (maxSpread fails), so rank on the average
+  // One snapshot can catch a tight book in a market that pays nobody most seconds (maxSpread fails), so rank on the median
   // of US_SAMPLES reads 30 s apart. ponytail: 5 minutes of history; log pay rates across sessions if this still misjudges.
   const n = Number(process.env.US_SAMPLES ?? 10);
   for (let i = 0; i < n; i++) {
-    for (const c of short) { c.sum += (await usEstimate(c.slug, c.t)) ?? 0; await sleep(50); }
+    for (const c of short) { c.hs.push((await usEstimate(c.slug, c.t)) ?? 0); await sleep(50); }
     if (i < n - 1) await sleep(30_000);
   }
-  const best = short.map((c) => ({ ...c, h: c.sum / n })).sort((a, b) => b.h - a.h);
+  const best = short.map((c) => ({ ...c, h: c.hs.sort((a, b) => a - b)[Math.floor(n / 2)]! })).sort((a, b) => b.h - a.h); // median: one thin-book read can 30x a mean
   console.error(`polyus sampled ${n}x: ${best.map((c) => `${c.slug} $${(c.h * 24).toFixed(2)}/d (snapshot $${(c.snap * 24).toFixed(2)})`).join(", ")}`);
   if (best[0] && best[0].h * 24 >= 1) {
     const r = best[0];
-    console.error(`polyus pick: ${r.slug} ~$${(r.h * 24).toFixed(2)}/d averaged (pool $${r.t.rewardPool}/d, target ${r.t.targetSize})`);
+    console.error(`polyus pick: ${r.slug} ~$${(r.h * 24).toFixed(2)}/d median (pool $${r.t.rewardPool}/d, target ${r.t.targetSize})`);
     return { slug: r.slug, t: r.t, m: r.m };
   }
   throw new Error("polyus: no daily liquidity program fits the budget");
