@@ -6,6 +6,9 @@ import styles from "./DecisionPanel.module.css";
 
 export interface DecisionPanelProps {
   latest: BlockEvent | null;
+  /** venue label, e.g. "kalshi · Golden State wins · KXNBA…" */
+  market?: string;
+  venue?: string;
 }
 
 type Chosen = "buy" | "sell" | null;
@@ -47,7 +50,9 @@ function BarRow({ label, labelColor, active, value, fill, pct }: BarRowProps) {
   );
 }
 
-export default function DecisionPanel({ latest }: DecisionPanelProps) {
+export default function DecisionPanel({ latest, market, venue }: DecisionPanelProps) {
+  const pm = !!venue && venue !== "kuru";
+  const unit = pm ? "tick" : "block";
   const decision = latest?.decision ?? null;
   const late = decision ? decision.late : true;
   // "hold" is treated as a non-decision, exactly as the feed does.
@@ -73,13 +78,15 @@ export default function DecisionPanel({ latest }: DecisionPanelProps) {
       <section className={styles.section}>
         <div className={styles.sectionLabel}>STANDING ORDER</div>
         <div className={styles.order}>
-          {"> post a bid or an ask on Kuru's MON/USDC book. every block. no abstaining."}
+          {pm
+            ? `> post a bid or an ask on the YES contract. every ${unit}. no abstaining. dry run, fills are simulated.`
+            : "> post a bid or an ask on Kuru's MON/USDC book. every block. no abstaining."}
         </div>
       </section>
 
       <section className={styles.section}>
         <div className={`${styles.sectionLabel} ${styles.sectionLabelGap}`}>
-          WHICH SIDE THIS BLOCK?
+          WHICH SIDE THIS {unit.toUpperCase()}?
         </div>
 
         <div className={styles.headline} style={{ color: headlineColor }}>

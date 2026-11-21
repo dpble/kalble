@@ -18,6 +18,7 @@
   },
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "bun --watch run src/index.ts"
+    "dev": "bun --watch run src/index.ts",
+    "duo": "bun run scripts/duo.ts"
   }
 }

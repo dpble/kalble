@@ -1,4 +1,28 @@
-# jev-trader
+# Kalble
+
+Kalble is a dry-run market-making bot for prediction markets. It reads live order books on Polymarket, Polymarket US and Kalshi, quotes both sides like a market maker would, simulates fills against real trades and estimates how much each exchange's liquidity reward program would pay. It never places real orders.
+
+I started from Jarrod Watts' [jev-trader](https://github.com/jarrodwatts/jev-trader) (MIT), which made markets on the Kuru MON-USDC book on Monad. That book went dead in November 2026, so I moved the bot to prediction markets and built the rest on top. The full writeup of what I found is at https://www.dpble.com/kalble.
+
+## What it does
+
+- Runs several strategies side by side (long-dated Polymarket markets, Kalshi's Liquidity Incentive Program, Polymarket US liquidity incentives, a cross-venue gap logger) with a $25 per day loss limit across all of them.
+- Scores each exchange's reward program with that exchange's own rules: Polymarket's quadratic spread score, Kalshi's target size and discount factor, and Polymarket US's walk-to-target score with its max spread and $1 payout minimum.
+- Picks markets by expected reward per hour from the live book, and sizes every quote so a jump to 0 or 100 can't lose more than the bot's budget.
+- Logs every tick, fill and session, and a results page splits profit into rewards, spread, inventory moves, fees and luck after the market was decided, with a 95% range.
+- Has a Next.js dashboard and a small Tauri Mac app that starts and stops everything.
+
+## Run it
+
+    bun install
+    cd web && bun install && cd ..
+    bun run duo
+
+The dashboard is at http://localhost:3000 and results are at http://localhost:3000/results. Everything is dry run. Only public market data is used, so no exchange keys are needed.
+
+Self-checks: `bun run src/venues.ts`, `bun run src/scoreboard.ts`, `bun run scripts/duo.ts --check`.
+
+## Original jev-trader (Monad / Kuru)
 
 One decision every Monad block. A TypeSafe Jev model watches the Kuru MON-USDC order book and answers buy or sell every ~300 ms. Every block posts a real post-only limit order on that side, one tick inside the touch, replacing the last one. Fills happen when a taker hits it, so the bot earns the spread instead of paying it. A small server streams every block to the dashboard.
 

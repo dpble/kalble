@@ -2,13 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BlockEvent, ConnectionState, Meta } from "@/lib/types";
-import { fmtInt, shortAddr } from "@/lib/format";
+import Link from "next/link";
+import { fmtInt, isPredictionMarket, shortAddr } from "@/lib/format";
 import styles from "./Header.module.css";
 
 export interface HeaderProps {
   meta: Meta | null;
   latest: BlockEvent | null;
   connection: ConnectionState;
+  /** which page is showing, for the nav */
+  lane?: "mock" | "jev" | "compare";
+  /** opens the model/key panel */
+  onSettings?: () => void;
 }
 
 /** Only shown when we are NOT live. Live is the silent, default state. */
@@ -17,7 +22,7 @@ const OFFLINE_LABEL: Partial<Record<ConnectionState, string>> = {
   reconnecting: "reconnecting",
 };
 
-export default function Header({ meta, latest, connection }: HeaderProps) {
+export default function Header({ meta, latest, connection, lane, onSettings }: HeaderProps) {
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -48,9 +53,19 @@ export default function Header({ meta, latest, connection }: HeaderProps) {
 
   return (
     <div className={styles.header}>
-      <span className={styles.brand}>‖ Jev Trader</span>
+      <span className={styles.brand}>‖ Kalble</span>
 
-      <span className={styles.block}>block {latest ? fmtInt(latest.block) : "-"}</span>
+      {lane ? (
+        <nav className={styles.nav} aria-label="views">
+          <Link href="/" className={lane === "mock" ? styles.navOn : styles.navLink}>mock</Link>
+          <Link href="/jev" className={lane === "jev" ? styles.navOn : styles.navLink}>jev</Link>
+          <Link href="/compare" className={lane === "compare" ? styles.navOn : styles.navLink}>compare</Link>
+        </nav>
+      ) : null}
+
+      {latest ? (
+        <span className={styles.block}>{isPredictionMarket() ? "tick" : "block"} {fmtInt(latest.block)}</span>
+      ) : null}
 
       <span className={styles.spacer} />
 
@@ -66,6 +81,12 @@ export default function Header({ meta, latest, connection }: HeaderProps) {
       >
         {copied ? "copied" : wallet ? shortAddr(wallet) : "dry run"}
       </button>
+
+      {onSettings ? (
+        <button type="button" className={styles.wallet} onClick={onSettings} title="TypeSafe key and model">
+          {meta?.hasKey ? "settings" : "add key"}
+        </button>
+      ) : null}
 
       {model ? (
         <span

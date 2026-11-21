@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>Kalble</title>
+<style>body{margin:0;height:100vh;display:grid;place-items:center;background:#F0EEE9;font:15px -apple-system,sans-serif;color:#555}</style>
+<p id="s">Starting bots and dashboard…</p>
+<script>
+// wait for the Next dashboard (started by the app), then go there
+const go = () => fetch("http://localhost:3000/compare?s=farmer", { mode: "no-cors" })
+  .then(() => location.replace("http://localhost:3000/compare?s=farmer"))
+  .catch(() => setTimeout(go, 1000));
+go();
+setTimeout(() => s.textContent = "Still starting… if this sticks, check Bots > Open log", 60000);
+</script>

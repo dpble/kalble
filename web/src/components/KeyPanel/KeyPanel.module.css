@@ -1,0 +1,26 @@
+.backdrop { position: fixed; inset: 0; background: rgba(10, 10, 10, 0.28); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.panel { width: min(440px, 100%); background: var(--bg); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 20px 22px 18px; box-shadow: 0 24px 60px rgba(10, 10, 10, 0.12); }
+.head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.close { appearance: none; border: 0; background: transparent; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 8px; }
+.close:hover { color: var(--ink); background: var(--panel); }
+.row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.label { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+.muted { font-size: 13px; color: var(--muted-2); }
+.ok { font-size: 13px; color: var(--pnl-pos); }
+.err { font-size: 13px; color: var(--pnl-neg); margin-top: 10px; }
+.form { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.inputRow { display: flex; gap: 8px; }
+.input { flex: 1; min-width: 0; border: 1px solid var(--border-2); border-radius: 10px; padding: 9px 12px; font-family: var(--font-mono); font-size: 13px; background: var(--bg); }
+.input:focus { outline: 2px solid var(--badge-jev-bg); border-color: var(--link); }
+.primary { appearance: none; border: 0; border-radius: 10px; padding: 9px 16px; background: var(--ink); color: var(--bg); font-weight: 500; cursor: pointer; }
+.primary:disabled { opacity: 0.35; cursor: default; }
+.switch { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--border-2); border-radius: 999px; padding: 3px; gap: 2px; }
+.segOn, .segOff { appearance: none; border: 0; border-radius: 999px; padding: 5px 14px; font-family: var(--font-mono); font-size: 12px; cursor: pointer; background: transparent; }
+.segOn { background: var(--badge-jev-bg); color: var(--badge-jev-fg); cursor: default; }
+.segOff { color: var(--muted); }
+.segOff:hover:not(:disabled) { color: var(--ink); background: var(--panel); }
+.segOff:disabled { opacity: 0.4; cursor: default; }
+.note { margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.5; }

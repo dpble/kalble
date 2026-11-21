@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { BlockEvent } from "@/lib/types";
-import { fmtConf, fmtMon, fmtPrice, fmtSigned, fmtSignedMon } from "@/lib/format";
+import { fmtConf, fmtMon, fmtPrice, fmtSigned, fmtSignedMon, fmtUsd, isPredictionMarket } from "@/lib/format";
 import { smoothPath } from "./smooth";
 import styles from "./FlowChart.module.css";
 
@@ -27,9 +27,12 @@ function cellFill(e: BlockEvent): string {
 export default function FlowChart({
   events,
   latest,
+  market,
 }: {
   events: BlockEvent[];
   latest: BlockEvent | null;
+  /** venue label shown under the price; defaults to MON/USDC · Kuru */
+  market?: string;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const originRef = useRef<number | null>(null);
@@ -185,7 +188,7 @@ export default function FlowChart({
   const late = d?.late === true;
   const act = late ? "late" : (d?.action ?? "hold");
   const word =
-    act === "buy" ? "Buying" : act === "sell" ? "Selling" : act === "late" ? "Missed the block" : "Holding";
+    act === "buy" ? "Buying" : act === "sell" ? "Selling" : act === "late" ? (isPredictionMarket() ? "Missed the tick" : "Missed the block") : "Holding";
   const wordColor =
     act === "buy"
       ? "var(--buy-ink)"
@@ -203,6 +206,7 @@ export default function FlowChart({
       ? "flat"
       : `${pos.side} ${fmtMon(pos.size, Number.isInteger(pos.size) ? 0 : 3)}`;
   const pnlMon = shown?.totals?.pnlMon ?? 0;
+  const pnlUsd = shown?.totals?.pnlUsd ?? 0;
   const pnlPct = shown?.totals?.pnlPct ?? 0;
 
   return (
@@ -331,11 +335,17 @@ export default function FlowChart({
                 {fmtPrice(shown.mid)}
               </div>
               <div className={styles.sub}>
-                <span>MON/USDC</span>
-                <span>Kuru</span>
+                {market ? (
+                  <span title={market}>{market.length > 60 ? `${market.slice(0, 58)}…` : market}</span>
+                ) : (
+                  <>
+                    <span>MON/USDC</span>
+                    <span>Kuru</span>
+                  </>
+                )}
                 <span>{stance}</span>
-                <span style={{ color: pnlMon >= 0 ? "var(--pnl-pos)" : "var(--pnl-neg)" }}>
-                  p&amp;l {fmtSignedMon(pnlMon, 3)} ({fmtSigned(pnlPct, 2)}%)
+                <span style={{ color: (isPredictionMarket() ? pnlUsd : pnlMon) >= 0 ? "var(--pnl-pos)" : "var(--pnl-neg)" }}>
+                  p&amp;l {isPredictionMarket() ? fmtUsd(pnlUsd, 2) : fmtSignedMon(pnlMon, 3)} ({fmtSigned(pnlPct, 2)}%)
                 </span>
               </div>
             </div>

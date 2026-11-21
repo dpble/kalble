@@ -2,6 +2,11 @@
 
 const INT = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
+/** Prediction-market mode: prices are the YES contract in dollars, sizes are contracts. Set from the feed's meta. */
+let pm = false;
+export function setVenue(venue: string | null | undefined) { pm = !!venue && venue !== "kuru"; }
+export const isPredictionMarket = () => pm;
+
 function safe(n: number | null | undefined): number {
   return typeof n === "number" && Number.isFinite(n) ? n : 0;
 }
@@ -13,7 +18,7 @@ export function fmtInt(n: number | null | undefined): string {
 
 /** 0.0222354 -> "0.022235" (6 decimals, MON/USDC ticks) */
 export function fmtPrice(n: number | null | undefined): string {
-  return safe(n).toFixed(6);
+  return pm ? `${(safe(n) * 100).toFixed(1)}¢` : safe(n).toFixed(6);
 }
 
 /** 0.0045 -> "$0.0045"; negatives -> "-$0.0045" */
@@ -24,7 +29,7 @@ export function fmtUsd(n: number | null | undefined, d = 4): string {
 
 /** 0.0213 -> "0.021 MON" */
 export function fmtMon(n: number | null | undefined, d = 3): string {
-  return `${safe(n).toFixed(d)} MON`;
+  return pm ? `${safe(n).toFixed(0)} ct` : `${safe(n).toFixed(d)} MON`;
 }
 
 /** 0.62 -> "62%" */

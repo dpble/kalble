@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useReducer } from "react";
-import type { BlockEvent, ConnectionState, FeedState, Fill, Meta, Quote } from "./types";
+import type { BlockEvent, ConnectionState, FeedError, FeedState, Fill, Meta, Quote } from "./types";
+import { setVenue } from "./format";
 
 export { useUptime } from "./useUptime";
 
@@ -24,7 +25,8 @@ type Action =
   | { type: "block"; event: BlockEvent }
   | { type: "fill"; block: number; fill: Fill }
   | { type: "quote"; block: number; quote: Quote }
-  | { type: "connection"; connection: ConnectionState };
+  | { type: "connection"; connection: ConnectionState }
+  | { type: "error"; error: FeedError };
 
 const initialState: State = {
   meta: null,
@@ -32,6 +34,7 @@ const initialState: State = {
   latest: null,
   connection: "connecting",
   avgLatencyMs: 0,
+  lastError: null,
   latSum: 0,
   latCount: 0,
 };
@@ -54,6 +57,9 @@ function avg(latSum: number, latCount: number): number {
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case "error":
+      return { ...state, lastError: action.error };
+
     case "connection":
       return state.connection === action.connection ? state : { ...state, connection: action.connection };
 
@@ -71,6 +77,7 @@ function reducer(state: State, action: Action): State {
       }
       return {
         meta: action.meta ?? state.meta,
+        lastError: null, // a fresh snapshot (reconnect, model swap) starts clean
         events,
         latest: events.length ? events[events.length - 1] : null,
         connection: "live",
@@ -183,6 +190,13 @@ function parseMeta(raw: Record<string, unknown> | null): Meta | null {
     dryRun: Boolean(raw.dryRun),
     market: typeof raw.market === "string" ? raw.market : "MON/USDC",
     startedAt: typeof raw.startedAt === "number" ? raw.startedAt : Date.now(),
+    venue: typeof raw.venue === "string" ? raw.venue : "kuru",
+    runName: typeof raw.runName === "string" ? raw.runName : "",
+    tickMs: typeof raw.tickMs === "number" ? raw.tickMs : 300,
+    horizonBlocks: typeof raw.horizonBlocks === "number" ? raw.horizonBlocks : 100,
+    hasKey: Boolean(raw.hasKey),
+    hasOddsKey: Boolean(raw.hasOddsKey),
+    fairSource: raw.fairSource === "odds" || raw.fairSource === "kalshi" || raw.fairSource === "none" ? raw.fairSource : null,
   };
 }
 
@@ -199,7 +213,7 @@ export function useFeed(apiUrl: string): FeedState {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof EventSource === "undefined") return;
+    if (!apiUrl || typeof window === "undefined" || typeof EventSource === "undefined") return;
     const base = (apiUrl || "").replace(/\/+$/, "");
 
     let closed = false;
@@ -267,7 +281,9 @@ export function useFeed(apiUrl: string): FeedState {
       handle("snapshot", (data) => {
         const d = (data ?? {}) as Record<string, unknown>;
         const history = Array.isArray(d.history) ? (d.history as BlockEvent[]) : [];
-        dispatch({ type: "snapshot", meta: parseMeta(d), history });
+        const meta = parseMeta(d);
+        setVenue(meta?.venue);
+        dispatch({ type: "snapshot", meta, history });
       });
       handle("block", (data) => {
         dispatch({ type: "block", event: data as BlockEvent });
@@ -281,6 +297,10 @@ export function useFeed(apiUrl: string): FeedState {
         const d = (data ?? {}) as { block?: number; quote?: Quote };
         if (typeof d.block !== "number" || !d.quote) return;
         dispatch({ type: "quote", block: d.block, quote: d.quote });
+      });
+      handle("botError", (data) => { // not "error": that name collides with EventSource connection errors
+        const d = (data ?? {}) as Partial<FeedError>;
+        if (typeof d.message === "string") dispatch({ type: "error", error: { message: d.message, ts: d.ts ?? Date.now() } });
       });
       handle("ping", () => {
         dispatch({ type: "connection", connection: "live" });

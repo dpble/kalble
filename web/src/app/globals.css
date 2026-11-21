@@ -1,4 +1,4 @@
-/* ---- Jev Trader design tokens (5e "Eleven", warm-neutral light system) ---- */
+/* ---- Kalble design tokens (5e "Eleven", warm-neutral light system) ---- */
 :root {
   /* surfaces */
   --bg: #FFFFFF;
@@ -42,9 +42,9 @@
   --pnl-pos: #0E9F5D;
   --pnl-neg: #DE3B32;
 
-  /* fonts (set by next/font in layout.tsx) */
-  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* fonts (Google Fonts link in layout.tsx) */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* page */
   --page-bg: #F0EEE9;

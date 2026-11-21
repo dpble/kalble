@@ -16,6 +16,8 @@ export interface Book {
   imbalance: number;
   /** Top 5 levels each side, best first: [price, size]. */
   levels: { bids: [number, number][]; asks: [number, number][] };
+  /** Venues: every level, best first (the reward share counts the whole band, not just the top 5). */
+  all?: { bids: [number, number][]; asks: [number, number][] };
   /** Cumulative MON depth within N bps of mid, per side. */
   depthBps: { [band: string]: { bid: number; ask: number } };
 }

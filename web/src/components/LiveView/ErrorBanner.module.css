@@ -1,0 +1,4 @@
+.banner { margin: 0 24px 10px; padding: 9px 14px; border-radius: 12px; background: var(--badge-standin-bg); color: var(--badge-standin-fg); font-size: 13px; display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.action { appearance: none; border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 999px; padding: 4px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.action:hover { background: rgba(255, 255, 255, 0.5); }
+@media (max-width: 899.98px) { .banner { margin: 0 16px 10px; } }

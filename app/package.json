@@ -1,0 +1,11 @@
+{
+  "name": "jev-trader-app",
+  "private": true,
+  "scripts": {
+    "build": "bun --bun tauri build --bundles app",
+    "icon": "bun --bun tauri icon icon.svg -o src-tauri/icons"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2"
+  }
+}

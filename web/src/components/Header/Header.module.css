@@ -100,3 +100,10 @@
     transition: none;
   }
 }
+
+.nav { display: inline-flex; gap: 2px; border: 1px solid var(--border-2); border-radius: 999px; padding: 3px; }
+.navLink, .navOn { font-family: var(--font-mono); font-size: 12px; line-height: 1; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+.navLink { color: var(--muted); }
+.navLink:hover { color: var(--ink); background: var(--panel); }
+.navOn { background: var(--ink); color: var(--bg); }
+@media (max-width: 640px) { .header { flex-wrap: wrap; gap: 12px; padding: 14px 16px; } .block { display: none; } }
