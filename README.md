@@ -12,6 +12,10 @@ I started from Jarrod Watts' [jev-trader](https://github.com/jarrodwatts/jev-tra
 - Logs every tick, fill and session, and a results page splits profit into rewards, spread, inventory moves, fees and luck after the market was decided, with a 95% range.
 - Has a Next.js dashboard and a small Tauri Mac app that starts and stops everything.
 
+## Status
+
+Finished and shut down on November 23, 2026. Final results are on https://www.dpble.com/kalble. Short version: at small size the reward programs and the fills that go against you roughly cancel out. On Polymarket US, size helps only up to the 500-contract target (a $10,000 bot earned the same as a $300 one), and the simulator misses most fills there because there is no public trade feed, so its reward numbers are not trustworthy.
+
 ## Run it
 
     bun install
